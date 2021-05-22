@@ -3,3 +3,6 @@
 *.pdf
 .idea
 out
+parser.java
+Yylex.java
+
