@@ -70,6 +70,7 @@ InputCharacter 	= [^\r\n]
 Digit			= [0-9]
 WhiteSpace     	= [ \t\f]
 Letters 		= [a-zA-Z_]
+Special_Char    = [&!#]
 Id 				= {Letters} ({Letters} | {Digit})*
 Num				= {Digit}+
 
@@ -402,15 +403,17 @@ return new Symbol(sym.EOF);
 
 
   /* error cases */
-  \\\s                           {
+  \\.                           {
 
-          Errors.fatal(yyline+1, CharNum.num, "Illegal Escape with backslash space"); CharNum.num+= yytext().length();
+          Errors.fatal(yyline+1, CharNum.num, "Illegal Escape with backslash and a not valid char");
+          CharNum.num+= yytext().length();
           string.stringLit.setLength(0);
           yybegin(IGNORELINE);
 
       }
   {LineTerminator}               {
-          Errors.fatal(yyline+1, CharNum.num, "Illegal String with line terminator"); CharNum.num+=yytext().length();
+          Errors.fatal(yyline+1, CharNum.num, "Illegal String with line terminator");
+          CharNum.num+=yytext().length();
           string.stringLit.setLength(0);
           yybegin(IGNORELINE);
 
@@ -418,9 +421,8 @@ return new Symbol(sym.EOF);
 }
 
 <IGNORELINE> {
-. {
-          // Ingrore all chars inside line
-      }
+    . { /* Ingrore all chars inside line */ }
+
     {LineTerminator} {
           yybegin(YYINITIAL);
       }
