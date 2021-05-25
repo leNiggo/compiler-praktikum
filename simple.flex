@@ -70,7 +70,6 @@ InputCharacter 	= [^\r\n]
 Digit			= [0-9]
 WhiteSpace     	= [ \t\f]
 Letters 		= [a-zA-Z_]
-Special_Char    = [&!#]
 Id 				= {Letters} ({Letters} | {Digit})*
 Num				= {Digit}+
 
@@ -95,7 +94,7 @@ StringCharacter = [^\n\r\"\\]
 %function next_token
 %type java_cup.runtime.Symbol
 
-%state STRING
+%state STRING, IGNORELINE
 
 // Tell JLex what to do on end-of-file
 %eofval{
@@ -204,7 +203,7 @@ return new Symbol(sym.EOF);
 				return S;
 
 			}
-
+		
 
 
 			//symbols
@@ -357,7 +356,7 @@ return new Symbol(sym.EOF);
                    }
                    catch (NumberFormatException numx){
                      Errors.fatal(yyline+1, CharNum.num,
-                     			 "Buffer Overflow");
+                     			 "Integer Overflow");
                      	    CharNum.num+= yytext().length();
 
                    }
@@ -403,8 +402,28 @@ return new Symbol(sym.EOF);
 
 
   /* error cases */
-  \\.                            { Errors.fatal(yyline+1, CharNum.num, "Illegal Escape"); CharNum.num+= yytext().length();  }
-  {LineTerminator}               { Errors.fatal(yyline+1, CharNum.num, "Illegal  STring"); CharNum.num+=yytext().length();}
+  \\\s                           {
+
+          Errors.fatal(yyline+1, CharNum.num, "Illegal Escape with backslash space"); CharNum.num+= yytext().length();
+          string.stringLit.setLength(0);
+          yybegin(IGNORELINE);
+
+      }
+  {LineTerminator}               {
+          Errors.fatal(yyline+1, CharNum.num, "Illegal String with line terminator"); CharNum.num+=yytext().length();
+          string.stringLit.setLength(0);
+          yybegin(IGNORELINE);
+
+      }
+}
+
+<IGNORELINE> {
+. {
+          // Ingrore all chars inside line
+      }
+    {LineTerminator} {
+          yybegin(YYINITIAL);
+      }
 }
 
 //Id
@@ -424,5 +443,6 @@ return new Symbol(sym.EOF);
 .	   {Errors.fatal(yyline+1, CharNum.num,
 			 "ignoring illegal character: " + yytext());
 	    CharNum.num++;
+
 	   }
 
