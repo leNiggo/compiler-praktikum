@@ -243,6 +243,11 @@ class VarDeclNode extends DeclNode {
     }
 
     public void decompile(PrintWriter p, int indent) {
+        doIndent(p, indent);
+        myType.decompile(p, indent);
+        p.print(" ");
+        myId.decompile(p, indent);
+        p.println(";");
     }
 
     // 2 kids

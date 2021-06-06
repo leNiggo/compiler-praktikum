@@ -74,9 +74,6 @@ Letters 		= [a-zA-Z_]
 
 WhiteSpace      = [ \t\f]
 
-Special_Char    = [&!#]
-
-
 Id 				= {Letters} ({Letters} | {Digit})*
 Num				= {Digit}+
 
@@ -432,9 +429,9 @@ return new Symbol(sym.EOF);
       }
 
     {LineTerminator} {
+          Errors.warn(yyline+1, CharNum.num, "Igonred Line");
           CharNum.num += yytext().length();
           yybegin(YYINITIAL);
-          Errors.warn(yyline+1, CharNum.num, "Igonred Line");
       }
 }
 

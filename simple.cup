@@ -55,6 +55,7 @@ terminal TokenVal       GREATER;
 terminal TokenVal       LESSEQ;
 terminal TokenVal       GREATEREQ;
 
+terminal UMINUS;
 /* Non-terminals
  *
  * NOTE: You will need to add more nonterminals to this list as you
@@ -62,15 +63,18 @@ terminal TokenVal       GREATEREQ;
  */
 non terminal ProgramNode      program;
 non terminal ClassBodyNode    classBody;
+//non terminal MethodBodyNode   mehtodBody;
 non terminal Sequence         declList;
 non terminal DeclNode	      decl;
 non terminal FieldDeclNode    fieldDecl;
+non terminal VarDeclNode      varDecl;
 non terminal TypeNode	      type;
 non terminal IdNode	          id;
 non terminal ExpNode          expr;
 
-
- 
+precedence left PLUS, MINUS;
+precedence left TIMES, DIVIDE;
+precedence left UMINUS;
 start with program;
 
 /*
@@ -87,6 +91,9 @@ classBody	::= declList:d
 		{: RESULT = new ClassBodyNode(new DeclListNode(d));
 		:}
 		;
+		//TODO: Impelemt Methodbody
+//mehtodBody  ::= declList:d
+//        {: RESULT = new MethodBodyNode(new DeclListNode(d));:}
 
 declList 	::= declList:dl decl:d
 		{: dl.addToEnd(d);
@@ -97,15 +104,19 @@ declList 	::= declList:dl decl:d
 		:}
 		;
 
-decl		::= fieldDecl:v
-		{: RESULT = v;
-		:}
+decl	::= fieldDecl:v
+		{: RESULT = v;:}
+		| varDecl:v
+		{: RESULT = v;:}
 		;
 
 fieldDecl	::= STATIC type:t id:i SEMICOLON
 		{: RESULT = new FieldDeclNode(t, i);
 		:}
 		;
+varDecl    ::= type:t id:i SEMICOLON
+           {: RESULT = new VarDeclNode(t, i);:}
+           ;
 
 type    ::= INT
 		{: RESULT = new IntNode(); :}
@@ -122,15 +133,69 @@ id              ::= ID:i
 		:}
 		;
 
-expr ::= TRUE:i
+expr ::=
+        expr:e PLUS expr:e2
+        {:RESULT = new PlusNode(e,e2);:}
+        |
+        expr:e MINUS expr:e2
+        {:RESULT = new MinusNode(e,e2);:}
+        |
+        expr:e TIMES expr:e2
+        {:RESULT = new TimesNode(e,e2);:}
+        |
+        expr:e DIVIDE expr:e2
+        {:RESULT = new DivideNode(e,e2);:}
+        |
+        expr:e NOT
+        {:RESULT = new NotNode(e);:}
+        |
+        expr:e AND expr:e2
+        {:RESULT = new AndNode(e,e2);:}
+        |
+        expr:e OR expr:e2
+        {:RESULT = new OrNode(e,e2);:}
+        |
+        expr:e EQUALS expr:e2
+        {:RESULT = new EqualsNode(e,e2);:}
+        |
+        expr:e NOTEQUALS expr:e2
+        {:RESULT = new NotEqualsNode(e,e2);:}
+        |
+        expr:e LESS expr:e2
+        {:RESULT = new LessNode(e,e2);:}
+        |
+        expr:e GREATER expr:e2
+        {:RESULT = new GreaterNode(e,e2);:}
+        |
+        expr:e LESSEQ expr:e2
+        {:RESULT = new LessEqNode(e,e2);:}
+        |
+        expr:e GREATEREQ expr:e2
+        {:RESULT = new GreaterEqNode(e,e2);:}
+        |
+        //TODO: Add POWER operator in simple.lex
+        MINUS expr:e
+        {:RESULT = new UnaryMinusNode(e);:}
+        %prec UMINUS
+        |
+        id
+        |
+        INTLITERAL:i
+        {: RESULT = new IntLitNode(i.linenum, i.charnum, i.intVal);:}
+        |
+        STRINGLITERAL:i
+        {: RESULT = new StringLitNode(i.linenum, i.charnum, i.strIdent);:}
+        |
+        TRUE:i
         {: RESULT = new TrueNode(i.linenum, i.charnum);:}
         |
         FALSE:i
         {: RESULT = new FalseNode(i.linenum, i.charnum);:}
         |
-        STRINGLITERAL:i
-        {: RESULT = new StringLitNode(i.linenum, i.charnum, i.strIdent);:}
+        LPAREN expr:e RPAREN
+        {:RESULT = e;:}
         |
-        INTLITERAL:i
-        {: RESULT = new IntLitNode(i.linenum, i.charnum, i.intVal);:}
+        id LPAREN RPAREN
         ;
+
+
