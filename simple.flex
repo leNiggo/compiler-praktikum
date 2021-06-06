@@ -65,12 +65,18 @@ class CharNum {
 %%
 
 
-LineTerminator 	= [\r|\n|\r\n]
+LineTerminator 	= \r|\n|\r\n
 InputCharacter 	= [^\r\n]
+
 Digit			= [0-9]
-WhiteSpace     	= [ \t\f]
 Letters 		= [a-zA-Z_]
+
+
+WhiteSpace      = [ \t\f]
+
 Special_Char    = [&!#]
+
+
 Id 				= {Letters} ({Letters} | {Digit})*
 Num				= {Digit}+
 
@@ -406,25 +412,29 @@ return new Symbol(sym.EOF);
   \\.                           {
 
           Errors.fatal(yyline+1, CharNum.num, "Illegal Escape with backslash and a not valid char");
-          CharNum.num+= yytext().length();
+          CharNum.num++;
           string.stringLit.setLength(0);
           yybegin(IGNORELINE);
-
       }
   {LineTerminator}               {
           Errors.fatal(yyline+1, CharNum.num, "Illegal String with line terminator");
-          CharNum.num+=yytext().length();
+          CharNum.num = 1;
           string.stringLit.setLength(0);
-          yybegin(IGNORELINE);
-
+          yybegin(YYINITIAL);
       }
 }
 
 <IGNORELINE> {
-    . { /* Ingrore all chars inside line */ }
+
+    .  {
+          Errors.warn(yyline+1, CharNum.num, "Ignoring Char");
+          CharNum.num ++;
+      }
 
     {LineTerminator} {
+          CharNum.num += yytext().length();
           yybegin(YYINITIAL);
+          Errors.warn(yyline+1, CharNum.num, "Igonred Line");
       }
 }
 
