@@ -107,7 +107,7 @@ fieldDecl	::= STATIC type:t id:i SEMICOLON
 		:}
 		;
 
-type		::= INT
+type    ::= INT
 		{: RESULT = new IntNode(); :}
 		|
 		BOOLEAN
@@ -121,8 +121,16 @@ id              ::= ID:i
 		{: RESULT = new IdNode(i.linenum, i.charnum, i.idVal);
 		:}
 		;
-/*
-expr    ::= expr:e1 PLUS expr:e2
-        {:
 
-        :}*/
+expr ::= TRUE:i
+        {: RESULT = new TrueNode(i.linenum, i.charnum);:}
+        |
+        FALSE:i
+        {: RESULT = new FalseNode(i.linenum, i.charnum);:}
+        |
+        STRINGLITERAL:i
+        {: RESULT = new StringLitNode(i.linenum, i.charnum, i.strIdent);:}
+        |
+        INTLITERAL:i
+        {: RESULT = new IntLitNode(i.linenum, i.charnum, i.intVal);:}
+        ;
