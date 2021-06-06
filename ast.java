@@ -303,7 +303,7 @@ class BooleanNode extends TypeNode
     }
 
     public void decompile(PrintWriter p, int indent) {
-        p.print("bool");
+        p.print("boolean");
     }
 }
 
@@ -437,6 +437,7 @@ class IntLitNode extends ExpNode {
     }
 
     public void decompile(PrintWriter p, int indent) {
+        p.print(myIntVal);
     }
 
     private int myLineNum;
@@ -452,6 +453,7 @@ class StringLitNode extends ExpNode {
     }
 
     public void decompile(PrintWriter p, int indent) {
+        p.print(myStrVal);
     }
 
     private int myLineNum;
@@ -466,6 +468,7 @@ class TrueNode extends ExpNode {
     }
 
     public void decompile(PrintWriter p, int indent) {
+        p.print("true");
     }
 
     private int myLineNum;
