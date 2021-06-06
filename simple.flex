@@ -180,7 +180,7 @@ return new Symbol(sym.EOF);
 				return S;
 
 			}
-"String" 	{
+"string" 	{
 				Symbol S = new Symbol(sym.STRING, new TokenVal(yyline+1, CharNum.num));
 				CharNum.num+= yytext().length();
 				return S;
