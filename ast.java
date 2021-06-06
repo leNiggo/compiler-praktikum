@@ -303,6 +303,7 @@ class BooleanNode extends TypeNode
     }
 
     public void decompile(PrintWriter p, int indent) {
+        p.print("bool");
     }
 }
 
@@ -312,6 +313,7 @@ class StringNode extends TypeNode
     }
 
     public void decompile(PrintWriter p, int indent) {
+        p.print("string");
     }
 }
 

@@ -1,6 +1,8 @@
 *.class
 *.iml
 *.pdf
+*.txt
+*.sim
 .idea
 out
 parser.java

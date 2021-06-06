@@ -28,12 +28,12 @@ terminal TokenVal       FALSE;
 terminal TokenVal       IF;
 terminal TokenVal       ELSE;
 terminal TokenVal       WHILE;
-terminal TokenVal 	DO;
+terminal TokenVal 	    DO;
 terminal TokenVal       PRINT;
 terminal TokenVal       RETURN;
-terminal IdIdent     ID;
+terminal IdIdent        ID;
 terminal IntLitTokenVal INTLITERAL;
-terminal StringIdent STRINGLITERAL;
+terminal StringIdent    STRINGLITERAL;
 terminal TokenVal       LCURLY;
 terminal TokenVal       RCURLY;
 terminal TokenVal       LPAREN;
@@ -66,7 +66,10 @@ non terminal Sequence         declList;
 non terminal DeclNode	      decl;
 non terminal FieldDeclNode    fieldDecl;
 non terminal TypeNode	      type;
-non terminal IdNode	      id;
+non terminal IdNode	          id;
+non terminal ExpNode          expr;
+
+
  
 start with program;
 
@@ -105,12 +108,21 @@ fieldDecl	::= STATIC type:t id:i SEMICOLON
 		;
 
 type		::= INT
-		{: RESULT = new IntNode();
-		:}
+		{: RESULT = new IntNode(); :}
+		|
+		BOOLEAN
+		{: RESULT = new BooleanNode();:}
+		|
+		STRING
+		{: RESULT = new StringNode();:}
 		;
 
 id              ::= ID:i
 		{: RESULT = new IdNode(i.linenum, i.charnum, i.idVal);
 		:}
 		;
+/*
+expr    ::= expr:e1 PLUS expr:e2
+        {:
 
+        :}*/
