@@ -167,6 +167,14 @@ class FormalsListNode extends ASTnode {
     }
 
     public void decompile(PrintWriter p, int indent) {
+        try {
+            for(myFormals.start(); myFormals.isCurrent(); myFormals.advance()) {
+                ((DeclNode)myFormals.getCurrent()).decompile(p, indent);
+            }
+        } catch (NoCurrentException ex) {
+            System.err.println("unexpected NoCurrentException in FormalNode.print");
+            System.exit(-1);
+        }
     }
 
   // sequence of kids (FormalDeclNodes)
@@ -180,6 +188,11 @@ class MethodBodyNode extends ASTnode {
     }
 
     public void decompile(PrintWriter p, int indent) {
+        doIndent(p, indent);
+        p.print("{");
+        myDeclList.decompile(p, indent);
+        myStmtList.decompile(p, indent);
+        p.print("}");
     }
 
     // 2 kids
@@ -193,6 +206,7 @@ class StmtListNode extends ASTnode {
     }
 
     public void decompile(PrintWriter p, int indent) {
+
     }
 
     // sequence of kids (StmtNodes)
@@ -265,6 +279,10 @@ class MethodDeclNode extends DeclNode {
     }
 
     public void decompile(PrintWriter p, int indent) {
+        p.print("public static");
+        myId.decompile(p, indent);
+        myFormalsList.decompile(p,indent);
+        myBody.decompile(p,indent);
     }
 
     // 3 kids
@@ -280,6 +298,8 @@ class FormalDeclNode extends DeclNode {
     }
 
     public void decompile(PrintWriter p, int indent) {
+        myType.decompile(p, indent);
+        myId.decompile(p,indent);
     }
 
     // 2 kids
