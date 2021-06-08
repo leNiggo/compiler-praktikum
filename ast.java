@@ -316,7 +316,6 @@ class VarDeclNode extends DeclNode {
 }
 
 abstract class MethodDeclNode extends DeclNode{
-
 }
 
 class MethodDeclVoidNode extends MethodDeclNode {

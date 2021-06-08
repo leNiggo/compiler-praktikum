@@ -393,9 +393,12 @@ return new Symbol(sym.EOF);
 <STRING> {
   \"                                {
                                         yybegin(YYINITIAL);
-                                        Symbol S = new Symbol(sym.STRINGLITERAL, new StringIdent(yyline+1, CharNum.num, string.stringLit.toString()));
-                                        CharNum.num += yytext().length();
-                                        return S;
+                                        //if (string.stringLit.length() > 0 ) {
+                                            Symbol S = new Symbol(sym.STRINGLITERAL, new StringIdent(yyline+1, CharNum.num, string.stringLit.toString()));
+                                            CharNum.num += yytext().length();
+                                            return S;
+                                       // }
+
                                     }
 
   {StringCharacter}+             { string.stringLit.append( yytext() ); }
@@ -416,7 +419,7 @@ return new Symbol(sym.EOF);
   \\.                           {
                                   Errors.fatal(yyline+1, CharNum.num, "Illegal Escape with backslash and a not valid char");
                                   CharNum.num++;
-                                  string.stringLit.setLength(0);
+                                  //string.stringLit.setLength(0);
                                 }
   {LineTerminator}               {
                                   Errors.fatal(yyline+1, CharNum.num, "Illegal String with line terminator");

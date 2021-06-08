@@ -1,18 +1,10 @@
 // Here you write your extensive test program that must
 // excercise all grammatical concepts defined in simple.grammar
 // Testing classbody
-public class Person {
-    static String name;
-    static int alter;
-    static boolean isFriendly;
+public class Person { static String name; static int alter; static boolean isFriendly;
+    public static void printShit() { System.out.println("Test");}
 
-    public static void printShit() {
-        System.out.println("Test");
-    }
-
-    public static int makeSum(int a, int b) {
-        return a + b;
-    }
+    public static int makeSum(int a, int b) { return a + b; }
 
     public static void testingOperators() {
         int x;
