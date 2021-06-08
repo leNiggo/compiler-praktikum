@@ -3,6 +3,7 @@
 *.pdf
 *.txt
 *.sim
+*.zip
 .idea
 out
 parser.java
