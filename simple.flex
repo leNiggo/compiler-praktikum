@@ -98,7 +98,7 @@ StringCharacter = [^\n\r\"\\]
 %function next_token
 %type java_cup.runtime.Symbol
 
-%state STRING, IGNORELINE
+%state STRING,
 
 // Tell JLex what to do on end-of-file
 %eofval{
@@ -160,7 +160,7 @@ return new Symbol(sym.EOF);
 
 			}
 "while" 	{
-				Symbol S = new Symbol(sym.DO, new TokenVal(yyline+1, CharNum.num));
+				Symbol S = new Symbol(sym.WHILE, new TokenVal(yyline+1, CharNum.num));
 				CharNum.num+= yytext().length();
 				return S;
 
@@ -177,7 +177,7 @@ return new Symbol(sym.EOF);
 				return S;
 
 			}
-"string" 	{
+"String" 	{
 				Symbol S = new Symbol(sym.STRING, new TokenVal(yyline+1, CharNum.num));
 				CharNum.num+= yytext().length();
 				return S;
@@ -271,6 +271,13 @@ return new Symbol(sym.EOF);
 	    	CharNum.num++;
 	   		return S;
 	   }
+
+"**"    {
+            Symbol S = new Symbol(sym.POWER, new TokenVal(yyline+1, CharNum.num));
+            CharNum.num++;
+            return S;
+
+        }
 
 "/"	  	{
 			Symbol S = new Symbol(sym.DIVIDE, new TokenVal(yyline+1, CharNum.num));
@@ -407,33 +414,18 @@ return new Symbol(sym.EOF);
 
   /* error cases */
   \\.                           {
-
-          Errors.fatal(yyline+1, CharNum.num, "Illegal Escape with backslash and a not valid char");
-          CharNum.num++;
-          string.stringLit.setLength(0);
-          yybegin(IGNORELINE);
-      }
+                                  Errors.fatal(yyline+1, CharNum.num, "Illegal Escape with backslash and a not valid char");
+                                  CharNum.num++;
+                                  string.stringLit.setLength(0);
+                                }
   {LineTerminator}               {
-          Errors.fatal(yyline+1, CharNum.num, "Illegal String with line terminator");
-          CharNum.num = 1;
-          string.stringLit.setLength(0);
-          yybegin(YYINITIAL);
-      }
+                                  Errors.fatal(yyline+1, CharNum.num, "Illegal String with line terminator");
+                                  CharNum.num = 1;
+                                  string.stringLit.setLength(0);
+                                  yybegin(YYINITIAL);
+                                }
 }
 
-<IGNORELINE> {
-
-    .  {
-          Errors.warn(yyline+1, CharNum.num, "Ignoring Char");
-          CharNum.num ++;
-      }
-
-    {LineTerminator} {
-          Errors.warn(yyline+1, CharNum.num, "Igonred Line");
-          CharNum.num += yytext().length();
-          yybegin(YYINITIAL);
-      }
-}
 
 //Id
 

@@ -7,8 +7,9 @@
 public class sym {
   /* terminals */
   public static final int DIVIDE = 30;
+  public static final int POWER = 40;
   public static final int EQUALS = 34;
-  public static final int UMINUS = 40;
+  public static final int UMINUS = 41;
   public static final int GREATER = 37;
   public static final int LPAREN = 22;
   public static final int INT = 5;
@@ -88,6 +89,7 @@ public class sym {
   "GREATER",
   "LESSEQ",
   "GREATEREQ",
+  "POWER",
   "UMINUS"
   };
 }
