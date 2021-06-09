@@ -1,6 +1,6 @@
-## Praktikum 2 Compiler: Parser
+## Praktikum Compiler
 
-## Parser Entwicklung einrichten
+## Entwicklung einrichten
 
 Hinweis: Diese Einrichtung gilt für die Intellij IDE!
 
@@ -38,6 +38,9 @@ Für den fall das man den Überblick verliert:
 ````
 make clean
 ````
+
+## Lexer testen
+P2 Main ausführen. P2 erwartet ein Argument: "Eigabedatei.sim".
 
 ## Parser testen
 
