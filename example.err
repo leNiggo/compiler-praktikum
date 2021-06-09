@@ -1,0 +1,13 @@
+12:11 **ERROR** Arithmetic operator applied to non-numeric operand
+12:15 **ERROR** Arithmetic operator applied to non-numeric operand
+13:11 **ERROR** Equality operator applied to a method
+14:11 **ERROR** Relational operator applied to non-numeric operand
+14:15 **ERROR** Relational operator applied to non-numeric operand
+17:19 **ERROR** Arithmetic operator applied to non-numeric operand
+18:17 **ERROR** Arithmetic operator applied to non-numeric operand
+19:5 **ERROR** Type mismatch
+22:18 **ERROR** Arithmetic operator applied to non-numeric operand
+22:28 **ERROR** Relational operator applied to non-numeric operand
+22:34 **ERROR** Relational operator applied to non-numeric operand
+
+
