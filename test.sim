@@ -29,9 +29,7 @@ public class Person { static String name; static int alter; static boolean isFri
 
        if (c >= 5) {
             System.out.println("C > 5");
-       } else {
-            System.out.println("C not bigger than 5");
-            System.out.println( makeSum(3,3); );
+       } else {System.out.println("C not bigger than 5");System.out.println( makeSum(3,3); );
             System.out.println( testingOperators(); );
        }
 

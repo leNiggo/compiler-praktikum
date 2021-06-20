@@ -57,6 +57,5 @@ public class P3 {
 	((ASTnode)root.value).decompile(outFile, 0);
 	outFile.close();
 
-	return;
-    }
+	}
 }
