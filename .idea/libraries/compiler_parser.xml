@@ -1,0 +1,10 @@
+<component name="libraryTable">
+  <library name="compiler-parser">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/submit.zip!/" />
+      <root url="jar://$PROJECT_DIR$/jar/java-cup-11b.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

@@ -4,7 +4,6 @@
 *.txt
 *.sim
 *.zip
-.idea
 out
 parser.java
 Yylex.java
