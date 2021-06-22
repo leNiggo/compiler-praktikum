@@ -50,7 +50,12 @@ public class P4 {
             System.exit(-1);
         }
 
-        //TODO: Call Analyser before calling decompile
+        System.out.println("Do Semantic analyse...");
+
+        ProgramNode progNode = ((ProgramNode)root.value);
+        progNode.checkName();
+        progNode.checkType();
+
 
         ((ASTnode)root.value).decompile(outputFile, 0);
 

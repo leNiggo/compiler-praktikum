@@ -1,5 +1,5 @@
 import java.io.*;
-
+import java.util.ArrayList;
 // **********************************************************************
 // The ASTnode class defines the nodes of the abstract-syntax tree that
 // represents a "Simple" program.
@@ -56,7 +56,7 @@ import java.io.*;
 //         UnaryMinusNode
 //         NotNode
 //       BinaryExpNode       ExpNode ExpNode
-//         PlusNode
+//         PlusNode     
 //         MinusNode
 //         TimesNode
 //         DivideNode
@@ -96,13 +96,13 @@ import java.io.*;
 // ASTnode class (base class for all other kinds of nodes)
 // **********************************************************************
 
-abstract class ASTnode {
+abstract class ASTnode { 
     // every subclass must provide an decompile operation
     abstract public void decompile(PrintWriter p, int indent);
 
     // this method can be used by the decompile methods to do indenting
     protected void doIndent(PrintWriter p, int indent) {
-        for (int k=0; k<indent; k++) p.print(" ");
+	for (int k=0; k<indent; k++) p.print(" ");
     }
 
     final int tab = 4;
@@ -114,45 +114,84 @@ abstract class ASTnode {
 // **********************************************************************
 class ProgramNode extends ASTnode {
     public ProgramNode(IdNode id, ClassBodyNode classBody) {
-        myId = id;
-        myClassBody = classBody;
+	myId = id;
+	myClassBody = classBody;
     }
 
     public void decompile(PrintWriter p, int indent) {
-        p.print("public class ");
-        myId.decompile(p, 0);
-        p.println("{");
-        myClassBody.decompile(p,tab);
-        p.println("}");
+	p.print("public class ");
+	myId.decompile(p, 0);
+	p.println("{");
+	myClassBody.decompile(p,tab);
+	p.println("}");
     }
 
+    public void checkName(){
+        SymbolTable st = new SymbolTable();
+        myId.checkInit(st, Types.ClassType, Types.ClassType,null);
+
+        tp = new TablePrinter(false);
+        tp.addToMap(st,0);
+        myClassBody.checkName(st,tp);
+        SymbolTable.Sym ms = st.lookup("main", 0, 0);
+        if(!(ms != null && ms.getMyType() == Types.MethodType)){
+            Errors.fatal(0, 0, "No main method declared");
+        }
+        tp.printMap();
+        //System.out.println(st.toString(0));
+    }
+
+    public void checkType()
+    {
+        myClassBody.checkType();
+    }
     // 2 kids
     private IdNode myId;
     private ClassBodyNode myClassBody;
+    private TablePrinter tp;
 }
 
 class ClassBodyNode extends ASTnode {
     public ClassBodyNode(DeclListNode declList) {
-        myDeclList = declList;
+	myDeclList = declList;
     }
 
     public void decompile(PrintWriter p, int indent) {
-        myDeclList.decompile(p, indent);
+	myDeclList.decompile(p, indent);
     }
 
+    public void checkName(SymbolTable st, TablePrinter tp){
+
+        myDeclList.checkName(st,tp );
+    }
+    public void checkType()
+    {
+        myDeclList.checkType();
+    }
     // 1 kid
     private DeclListNode myDeclList;
 }
 
 class DeclListNode extends ASTnode {
     public DeclListNode(Sequence S) {
-        myDecls = S;
+	myDecls = S;
     }
 
     public void decompile(PrintWriter p, int indent) {
+	try {
+	    for (myDecls.start(); myDecls.isCurrent(); myDecls.advance()) {
+		((DeclNode)myDecls.getCurrent()).decompile(p, indent);
+	    }
+	} catch (NoCurrentException ex) {
+	    System.err.println("unexpected NoCurrentException in DeclListNode.print");
+	    System.exit(-1);
+	}
+    }
+
+    public void checkName(SymbolTable st, TablePrinter tp){
         try {
             for (myDecls.start(); myDecls.isCurrent(); myDecls.advance()) {
-                ((DeclNode)myDecls.getCurrent()).decompile(p, indent);
+                ((DeclNode)myDecls.getCurrent()).checkName(st,tp);
             }
         } catch (NoCurrentException ex) {
             System.err.println("unexpected NoCurrentException in DeclListNode.print");
@@ -160,13 +199,24 @@ class DeclListNode extends ASTnode {
         }
     }
 
-    // sequence of kids (DeclNodes)
-    private Sequence myDecls;
+    public void checkType()
+    {
+        try {
+            for (myDecls.start(); myDecls.isCurrent(); myDecls.advance()) {
+                ((DeclNode)myDecls.getCurrent()).checkType();
+            }
+        } catch (NoCurrentException ex) {
+            System.err.println("unexpected NoCurrentException in DeclListNode.print");
+            System.exit(-1);
+        }
+    }
+  // sequence of kids (DeclNodes)
+  private Sequence myDecls;
 }
 
 class FormalsListNode extends ASTnode {
     public FormalsListNode(Sequence S) {
-        myFormals = S;
+	myFormals = S;
     }
 
     public void decompile(PrintWriter p, int indent) {
@@ -184,15 +234,41 @@ class FormalsListNode extends ASTnode {
             System.exit(-1);
         }
     }
+    public void checkName(SymbolTable st, TablePrinter tp)
+    {
+        //myParams = new ArrayList<Integer>();
+        try {
+            for (myFormals.start(); myFormals.isCurrent(); myFormals.advance()) { // myFormals.advance()
+                ((FormalDeclNode)myFormals.getCurrent()).checkName(st,tp);
+            }
+        } catch (NoCurrentException ex) {
+            System.err.println("unexpected NoCurrentException in FormalsListNode.print");
+            System.exit(-1);
+        }
+    }
 
-    // sequence of kids (FormalDeclNodes)
+    public ArrayList<Integer> getMethodParams()
+    {
+        myParams = new ArrayList<Integer>();
+        try {
+            for (myFormals.start(); myFormals.isCurrent(); myFormals.advance()) {
+                myParams.add(((FormalDeclNode)myFormals.getCurrent()).getParamType());
+            }
+        } catch (NoCurrentException ex) {
+            System.err.println("unexpected NoCurrentException in FormalsListNode.print");
+            System.exit(-1);
+        }
+        return myParams;
+    }
+  // sequence of kids (FormalDeclNodes)
     private Sequence myFormals;
+    private ArrayList<Integer> myParams;
 }
 
 class MethodBodyNode extends ASTnode {
     public MethodBodyNode(VarDeclListNode varDeclList, StmtListNode stmtList) {
-        myDeclList = varDeclList;
-        myStmtList = stmtList;
+	myDeclList = varDeclList;
+	myStmtList = stmtList;
     }
 
     public void decompile(PrintWriter p, int indent) {
@@ -203,6 +279,18 @@ class MethodBodyNode extends ASTnode {
         //p.println("baum");
     }
 
+    public void checkName(SymbolTable st, TablePrinter tp){
+        myDeclList.checkName(st,tp);
+        myStmtList.checkName(st,tp);
+    }
+
+    public int checkType(int expected){
+
+        return myStmtList.checkType(expected);
+    }
+    public void checkReturn(){
+
+    }
     // 2 kids
     private VarDeclListNode myDeclList;
     private StmtListNode myStmtList;
@@ -210,7 +298,7 @@ class MethodBodyNode extends ASTnode {
 
 class StmtListNode extends ASTnode {
     public StmtListNode(Sequence S) {
-        myStmts = S;
+	myStmts = S;
     }
 
     public void decompile(PrintWriter p, int indent) {
@@ -220,10 +308,135 @@ class StmtListNode extends ASTnode {
                 p.print("\n");
             }
         } catch (NoCurrentException ex) {
-            System.err.println("unexpected NoCurrentException in FormalsListNode.print");
+            System.err.println("unexpected NoCurrentException in StmtListNode.decompile");
             System.exit(-1);
         }
     }
+
+    public void checkName(SymbolTable st,TablePrinter tp){
+        try {
+            for (myStmts.start(); myStmts.isCurrent(); myStmts.advance()) {
+                if(myStmts.getCurrent() instanceof BracketStmtNode)
+                {
+                    ((BracketStmtNode) myStmts.getCurrent()).checkName(st,tp);
+                }
+                else if(myStmts.getCurrent() instanceof IfElseStmtNode)
+                {
+                    ((IfElseStmtNode) myStmts.getCurrent()).checkName(st,tp);
+                }
+                else if(myStmts.getCurrent() instanceof IfStmtNode)
+                {
+                    ((IfStmtNode) myStmts.getCurrent()).checkName(st,tp);
+                }
+                else if(myStmts.getCurrent() instanceof WhileStmtNode)
+                {
+                    ((WhileStmtNode) myStmts.getCurrent()).checkName(st,tp);
+                }
+                else {
+                    ((StmtNode) myStmts.getCurrent()).checkName(st);
+                }
+            }
+        } catch (NoCurrentException ex) {
+            System.err.println("unexpected NoCurrentException in StmtListNode.checkName");
+            System.exit(-1);
+        }
+    }
+
+    public int checkType(int expected)
+    {
+        int returnType;
+        int returnVal = Types.ErrorType;
+
+        if(expected == Types.MethodType)
+        {
+            returnVal = expected;
+        }
+        boolean myReturn = false;
+        try {
+            for (myStmts.start(); myStmts.isCurrent(); myStmts.advance()){
+                if(myStmts.getCurrent() instanceof ReturnStmtNode)
+                {
+                    myReturn = true;
+                    returnType= ((ReturnStmtNode) myStmts.getCurrent()).checkType(expected);
+                    if(returnType == Types.ErrorType)
+                    {
+                        returnVal = Types.ErrorType;
+                    }
+                    else
+                    {
+                        returnVal = returnType;
+                    }
+                }
+            }
+
+            for (myStmts.start(); myStmts.isCurrent(); myStmts.advance()) {
+                if(myStmts.getCurrent() instanceof IfElseStmtNode)
+                {
+                    returnType= ((IfElseStmtNode) myStmts.getCurrent()).checkType(expected);
+                    if(returnType == Types.ErrorType && !myReturn)
+                    {
+                        returnVal = Types.ErrorType;
+                    }
+                    else if(returnType !=Types.ErrorType)
+                    {
+                        returnVal = returnType;
+                    }
+                }
+                /*
+                else if(myStmts.getCurrent() instanceof IfStmtNode)
+                {
+                    returnType= ((IfStmtNode) myStmts.getCurrent()).checkType(expected);
+                    if(returnType == Types.ErrorType && !myReturn)
+                    {
+                        returnVal = Types.ErrorType;
+                    }
+                    else if(returnType !=Types.ErrorType)
+                    {
+                        returnVal = returnType;
+                    }
+                }
+                */
+
+                else if(myStmts.getCurrent() instanceof WhileStmtNode)
+                {
+                    returnType= ((WhileStmtNode) myStmts.getCurrent()).checkType(expected);
+                    if(returnType == Types.ErrorType && !myReturn)
+                    {
+                        returnVal = Types.ErrorType;
+                    }
+                    else if(returnType !=Types.ErrorType)
+                    {
+                        returnVal = returnType;
+                    }
+                }
+                else if(myStmts.getCurrent() instanceof BracketStmtNode)
+                {
+                    returnType= ((BracketStmtNode) myStmts.getCurrent()).checkType(expected);
+                    if(returnType == Types.ErrorType && !myReturn)
+                    {
+                        returnVal = Types.ErrorType;
+                    }
+                    else if(returnType !=Types.ErrorType)
+                    {
+                        returnVal = returnType;
+                    }
+                }
+                else if(myStmts.getCurrent() instanceof ReturnStmtNode)
+                {
+
+                }
+                else {
+                    ((StmtNode) myStmts.getCurrent()).checkType(expected);
+                }
+
+            }
+        } catch (NoCurrentException ex) {
+            System.err.println("unexpected NoCurrentException in StmtListNode.checkName");
+            System.exit(-1);
+        }
+        return returnVal;
+    }
+
 
     // sequence of kids (StmtNodes)
     private Sequence myStmts;
@@ -244,17 +457,29 @@ class VarDeclListNode extends ASTnode {
             System.exit(-1);
         }
     }
+
+    public void checkName(SymbolTable st, TablePrinter tp){
+        try {
+            for (myVarDecl.start(); myVarDecl.isCurrent(); myVarDecl.advance()) {
+                ((VarDeclNode) myVarDecl.getCurrent()).checkName(st,tp);
+            }
+        } catch (NoCurrentException ex) {
+            System.err.println("unexpected NoCurrentException in VarDeclListNode.print");
+            System.exit(-1);
+        }
+    }
     private Sequence myVarDecl;
 }
 
 class ExpListNode extends ASTnode {
     public ExpListNode(Sequence S) {
-        myExps = S;
+	myExps = S;
     }
     public void decompile(PrintWriter p, int indent) {
         try {
-            for (myExps.start(); myExps.isCurrent(); ){
+            for (myExps.start(); myExps.isCurrent(); ){//myExps.advance()) {
                 ((ExpNode)myExps.getCurrent()).decompile(p, indent);
+                //p.print("\n");
                 myExps.advance();
                 if(myExps.isCurrent()){
                     p.print(", ");
@@ -265,9 +490,73 @@ class ExpListNode extends ASTnode {
             System.exit(-1);
         }
     }
+    public void checkName(SymbolTable st)
+    {
+        try {
+            for (myExps.start(); myExps.isCurrent();myExps.advance()){
+                ((ExpNode)myExps.getCurrent()).checkName(st);
+            }
+        } catch (NoCurrentException ex) {
+            System.err.println("unexpected NoCurrentException in FormalsListNode.print");
+            System.exit(-1);
+        }
+    }
+
+
+    public boolean checkType(ArrayList<Integer> params)
+    {
+        ArrayList<Integer> runList = new ArrayList<>();
+        boolean returnVal = true;
+        if(myExps.length() == params.size())
+        {
+            try {
+                int i = 0;
+                for (myExps.start(); myExps.isCurrent(); myExps.advance()) {
+                    int checkVal= ((ExpNode) myExps.getCurrent()).checkType(params.get(i));
+                    runList.add(checkVal);
+                    i++;
+                }
+                returnVal = runList.equals(params);
+            } catch (NoCurrentException ex) {
+                System.err.println("unexpected NoCurrentException in FormalsListNode.print");
+                System.exit(-1);
+            }
+        }
+        else
+        {
+            returnVal = false;
+        }
+        return returnVal;
+    }
+    public boolean callExpCheckType(ArrayList<Integer> params)
+    {
+        ArrayList<Integer> runList = new ArrayList<>();
+        boolean returnVal = true;
+        if(myExps.length() == params.size())
+        {
+            try {
+                int i = 0;
+                for (myExps.start(); myExps.isCurrent(); myExps.advance()) {
+                    int checkVal= ((ExpNode) myExps.getCurrent()).callExpCheckType(params.get(i));
+                    runList.add(checkVal);
+                    i++;
+                }
+                returnVal = runList.equals(params);
+            } catch (NoCurrentException ex) {
+                System.err.println("unexpected NoCurrentException in FormalsListNode.print");
+                System.exit(-1);
+            }
+        }
+        else
+        {
+            returnVal = false;
+        }
+        return returnVal;
+    }
 
     // sequence of kids (ExpNodes)
     private Sequence myExps;
+    private ArrayList<Integer> myParams = new ArrayList<>();
 }
 
 // **********************************************************************
@@ -275,22 +564,30 @@ class ExpListNode extends ASTnode {
 // **********************************************************************
 abstract class DeclNode extends ASTnode
 {
+    public abstract void checkName(SymbolTable st, TablePrinter tp);
+    public abstract void checkType();
 }
 
 class FieldDeclNode extends DeclNode {
     public FieldDeclNode(TypeNode type, IdNode id) {
-        myType = type;
-        myId = id;
+	myType = type;
+	myId = id;
     }
     public void decompile(PrintWriter p, int indent) {
-        doIndent(p, indent);
-        p.print("static ");
-        myType.decompile(p, indent);
-        p.print(" ");
-        myId.decompile(p, indent);
-        p.println(";");
+	doIndent(p, indent);
+	p.print("static ");
+	myType.decompile(p, indent);
+	p.print(" ");
+	myId.decompile(p, indent);
+	p.println(";");
+    }
+    public void checkName(SymbolTable st, TablePrinter tp){
+        myId.checkInit(st,myType.getType(),myType.getType(),null);
     }
 
+    public void checkType(){
+
+    }
     // 2 kids
     private TypeNode myType;
     private IdNode myId;
@@ -298,8 +595,8 @@ class FieldDeclNode extends DeclNode {
 
 class VarDeclNode extends DeclNode {
     public VarDeclNode(TypeNode type, IdNode id) {
-        myType = type;
-        myId = id;
+	myType = type;
+	myId = id;
     }
 
     public void decompile(PrintWriter p, int indent) {
@@ -313,6 +610,12 @@ class VarDeclNode extends DeclNode {
     // 2 kids
     private TypeNode myType;
     private IdNode myId;
+    public void checkName(SymbolTable st, TablePrinter tp){
+        myId.checkInit(st,myType.getType(),myType.getType(),null);
+    }
+    public void checkType(){
+
+    }
 }
 
 abstract class MethodDeclNode extends DeclNode{
@@ -320,10 +623,10 @@ abstract class MethodDeclNode extends DeclNode{
 
 class MethodDeclVoidNode extends MethodDeclNode {
     public MethodDeclVoidNode(IdNode id, FormalsNode formals,
-                              MethodBodyNode body) {
-        myId = id;
-        myFormals = formals;
-        myBody = body;
+			  MethodBodyNode body) {
+	myId = id;
+	myFormals = formals;
+	myBody = body;
     }
 
     public void decompile(PrintWriter p, int indent) {
@@ -336,16 +639,36 @@ class MethodDeclVoidNode extends MethodDeclNode {
         doIndent(p, indent);
         p.print("}\n");
     }
+    public void checkName(SymbolTable st, TablePrinter tp){
+        SymbolTable newSt = new SymbolTable();
+        newSt.setMyParent(st);
+        tp.addToMap(newSt,1);
+        myFormals.checkName(newSt,tp);
+        myParams = myFormals.getMethodParams();
 
+        myId.checkInit(st,myType,myRetType,myParams);
+        myBody.checkName(newSt,tp);
+
+        //System.out.println(newSt.toString(1));
+    }
+    public void checkType(){
+        if(myBody.checkType(myRetType)==Types.ErrorType)
+        {
+            Errors.fatal(myId.getMyLineNum(),myId.getMyCharNum(),"Missing return statement");
+        }
+    }
     // 3 kids
     private IdNode myId;
     private FormalsNode myFormals;
     private MethodBodyNode myBody;
+    private int myType = Types.MethodType;
+    private int myRetType = Types.MethodType;
+    private ArrayList<Integer> myParams;
 }
 
 class MethodDeclIntNode extends MethodDeclNode {
     public MethodDeclIntNode(IdNode id, FormalsNode formals,
-                             MethodBodyNode body) {
+                              MethodBodyNode body) {
         myId = id;
         myFormals = formals;
         myBody = body;
@@ -361,17 +684,37 @@ class MethodDeclIntNode extends MethodDeclNode {
         doIndent(p,indent);
         p.print("}\n");
     }
+    public void checkName(SymbolTable st, TablePrinter tp){
 
-    // 3 kids
+        SymbolTable newSt = new SymbolTable();
+        newSt.setMyParent(st);
+        tp.addToMap(newSt,1);
+        myFormals.checkName(newSt,tp);
+        myParams = myFormals.getMethodParams();
+        myId.checkInit(st,myType,myRetType,myParams);
+        myBody.checkName(newSt,tp);
+
+    }
+    public void checkType(){
+        if(myBody.checkType(myRetType)==Types.ErrorType)
+        {
+            Errors.fatal(myId.getMyLineNum(),myId.getMyCharNum(),"Missing return statement");
+        }
+
+    }
+     // 3 kids
     private IdNode myId;
     private FormalsNode myFormals;
     private MethodBodyNode myBody;
+    private int myType = Types.MethodType;
+    private int myRetType = Types.IntType;
+    private ArrayList<Integer> myParams;
 }
 
 class FormalDeclNode extends DeclNode {
     public FormalDeclNode(TypeNode type, IdNode id) {
-        myType = type;
-        myId = id;
+	myType = type;
+	myId = id;
     }
 
     public void decompile(PrintWriter p, int indent) {
@@ -379,8 +722,17 @@ class FormalDeclNode extends DeclNode {
         p.print(" ");
         myId.decompile(p,indent);
     }
+    public void checkName(SymbolTable st, TablePrinter tp){
+        myId.checkInit(st, myType.getType(), myType.getType(), null);
+    }
 
-    // 2 kids
+    public int getParamType()
+    {
+        return myType.getType();
+    }
+    public void checkType(){
+
+    }
     private TypeNode myType;
     private IdNode myId;
 }
@@ -396,7 +748,16 @@ class FormalsNode extends DeclNode {
         p.print(")");
 
     }
+    public void checkName(SymbolTable st, TablePrinter tp){
+        myList.checkName(st,tp);
+    }
+    public ArrayList<Integer> getMethodParams()
+    {
+        return myList.getMethodParams();
+    }
+    public void checkType(){
 
+    }
     // 2 kids
     private FormalsListNode myList;
 }
@@ -405,6 +766,7 @@ class FormalsNode extends DeclNode {
 // TypeNode and its Subclasses
 // **********************************************************************
 abstract class TypeNode extends ASTnode {
+    public abstract int getType();
 }
 
 class IntNode extends TypeNode
@@ -413,7 +775,12 @@ class IntNode extends TypeNode
     }
 
     public void decompile(PrintWriter p, int indent) {
-        p.print("int");
+	p.print("int");
+    }
+
+    @Override
+    public int getType() {
+        return Types.IntType;
     }
 }
 
@@ -425,7 +792,11 @@ class BooleanNode extends TypeNode
     public void decompile(PrintWriter p, int indent)  {
         p.print("boolean");
     }{
-}
+    }
+    @Override
+    public int getType() {
+        return Types.BoolType;
+    }
 }
 
 class StringNode extends TypeNode
@@ -435,8 +806,13 @@ class StringNode extends TypeNode
 
     public void decompile(PrintWriter p, int indent)  {
         p.print("String");
-    }{
-}
+    }
+
+    @Override
+    public int getType() {
+        return Types.StringType;
+    }
+
 }
 
 // **********************************************************************
@@ -444,18 +820,28 @@ class StringNode extends TypeNode
 // **********************************************************************
 
 abstract class StmtNode extends ASTnode {
+    public abstract void checkName(SymbolTable st);
+    public abstract int checkType(int expected);
 }
 
 class PrintStmtNode extends StmtNode {
     public PrintStmtNode(ExpNode exp) {
-        myExp = exp;
+	myExp = exp;
     }
 
     public void decompile(PrintWriter p, int indent) {
         doIndent(p,indent);
         p.print("System.out.println(");
-        myExp.decompile(p,indent);
+        myExp.decompile(p,indent);;
         p.print(");");
+    }
+    public void checkName(SymbolTable st){
+        myExp.checkName(st);
+    }
+
+    @Override
+    public int checkType(int expected) {
+        return Types.MethodType;
     }
 
     // 1 kid
@@ -464,8 +850,8 @@ class PrintStmtNode extends StmtNode {
 
 class AssignStmtNode extends StmtNode {
     public AssignStmtNode(IdNode id, ExpNode exp) {
-        myId = id;
-        myExp = exp;
+	myId = id;
+	myExp = exp;
     }
 
     public void decompile(PrintWriter p, int indent) {
@@ -475,7 +861,16 @@ class AssignStmtNode extends StmtNode {
         myExp.decompile(p,indent);
         p.print(";");
     }
+    public void checkName(SymbolTable st){
+        myId.checkName(st);
+        myExp.checkName(st);
+    }
 
+    @Override
+    public int checkType(int expected) {
+
+        return myExp.checkType(myId.getMyRetTyp());
+    }
     // 2 kids
     private IdNode myId;
     private ExpNode myExp;
@@ -483,8 +878,8 @@ class AssignStmtNode extends StmtNode {
 
 class IfStmtNode extends StmtNode {
     public IfStmtNode(ExpNode exp, StmtListNode slist) {
-        myExp = exp;
-        myStmtList = slist;
+	myExp = exp;
+	myStmtList = slist;
     }
 
     public void decompile(PrintWriter p, int indent) {
@@ -497,6 +892,20 @@ class IfStmtNode extends StmtNode {
         p.print("}");
     }
 
+    public void checkName(SymbolTable st)
+    {
+        System.out.println("Wrong method");
+    }
+    public void checkName(SymbolTable st,TablePrinter tp){
+
+        myExp.checkName(st);
+        myStmtList.checkName(st,tp);
+    }
+
+    @Override
+    public int checkType(int expected) {
+        return myStmtList.checkType(expected);
+    }
     // 2 kids
     private ExpNode myExp;
     private StmtListNode myStmtList;
@@ -504,10 +913,10 @@ class IfStmtNode extends StmtNode {
 
 class IfElseStmtNode extends StmtNode {
     public IfElseStmtNode(ExpNode exp, StmtListNode slist1,
-                          StmtListNode slist2) {
-        myExp = exp;
-        myThenStmtList = slist1;
-        myElseStmtList = slist2;
+			  StmtListNode slist2) {
+	myExp = exp;
+	myThenStmtList = slist1;
+	myElseStmtList = slist2;
     }
 
     public void decompile(PrintWriter p, int indent) {
@@ -524,6 +933,26 @@ class IfElseStmtNode extends StmtNode {
         doIndent(p,indent);
         p.print("}");
     }
+    public void checkName(SymbolTable st)
+    {
+        System.out.println("Wrong method");
+    }
+    public void checkName(SymbolTable st,TablePrinter tp){
+
+        myExp.checkName(st);
+        myThenStmtList.checkName(st,tp);
+        myElseStmtList.checkName(st,tp);
+    }
+    @Override
+    public int checkType(int expected) {
+        int typeThen = myThenStmtList.checkType(expected);
+        int typeElse = myElseStmtList.checkType(expected);
+        if(typeThen == Types.ErrorType||typeElse == Types.ErrorType)
+        {
+            return Types.ErrorType;
+        }
+        return expected;
+    }
 
     // 3 kids
     private ExpNode myExp;
@@ -533,8 +962,8 @@ class IfElseStmtNode extends StmtNode {
 
 class WhileStmtNode extends StmtNode {
     public WhileStmtNode(ExpNode exp, StmtListNode slist) {
-        myExp = exp;
-        myStmtList = slist;
+	myExp = exp;
+	myStmtList = slist;
     }
 
     public void decompile(PrintWriter p, int indent) {
@@ -547,20 +976,35 @@ class WhileStmtNode extends StmtNode {
         p.print(")");
     }
 
-    // 2 kids
+    public void checkName(SymbolTable st)
+    {
+        System.out.println("Wrong method");
+    }
+
+    public void checkName(SymbolTable st,TablePrinter tp){
+
+        myExp.checkName(st);
+        myStmtList.checkName(st,tp);
+    }
+
+    @Override
+    public int checkType(int expected) {
+        return myStmtList.checkType(expected);
+    }
+
     private ExpNode myExp;
     private StmtListNode myStmtList;
 }
 
 class CallStmtNode extends StmtNode {
     public CallStmtNode(IdNode id, ExpListNode elist) {
-        myId = id;
-        myExpList = elist;
+	myId = id;
+	myExpList = elist;
     }
 
     public CallStmtNode(IdNode id) {
-        myId = id;
-        myExpList = new ExpListNode(new Sequence());
+	myId = id;
+	myExpList = new ExpListNode(new Sequence());
     }
 
     public void decompile(PrintWriter p, int indent) {
@@ -571,17 +1015,34 @@ class CallStmtNode extends StmtNode {
         p.print(");");
     }
 
-    // 2 kids
+    public void checkName(SymbolTable st){
+        myId.checkName(st);
+        myParams = myId.getParams();
+        myExpList.checkName(st);
+    }
+
+    @Override
+    public int checkType(int expected) {
+
+        return myId.checkReturn(expected);
+    }
+
     private IdNode myId;
     private ExpListNode myExpList;
+    private ArrayList<Integer> myParams;
+    private SymbolTable.Sym myRef;
 }
 
 class ReturnStmtNode extends StmtNode {
-    public ReturnStmtNode() {
+    public ReturnStmtNode( int lineNum,int charNum) {
+        myLineNum = lineNum;
+        myCharNum = charNum;
     }
 
-    ReturnStmtNode(ExpNode exp){
+    ReturnStmtNode(ExpNode exp, int lineNum,int charNum){
         myExp = exp;
+        myLineNum = lineNum;
+        myCharNum = charNum;
     }
 
     public void decompile(PrintWriter p, int indent) {
@@ -593,8 +1054,47 @@ class ReturnStmtNode extends StmtNode {
         }
         p.print(";");
     }
+    public void checkName(SymbolTable st){
+        if(myExp!=null) {
+            myExp.checkName(st);
+        }
+    }
+
+
+    @Override
+    public int checkType(int expected) {
+        int returnVal = expected;
+        int expType= 0;
+        if(myExp == null)
+        {
+            if(expected != Types.MethodType) {
+                String expString = Types.ToString(expected);
+                String provString = "void";
+                Errors.fatal(myLineNum,myCharNum,"Returntype mismatch--expected: "+ expString + " provided: "+ provString);
+            }
+        }
+        else if(expected != (expType=myExp.returnStmtCheckType(expected)))
+        {
+            String expString = Types.ToString(expected);
+            String provString = Types.ToString(expType);
+            if(expected == Types.MethodType)
+            {
+                expString = "void";
+            }
+            if(expType == Types.MethodType)
+            {
+                provString = "void";
+            }
+
+            Errors.fatal(myLineNum,myCharNum,"Returntype mismatch--expected: "+ expString + " provided: "+ provString);
+        }
+        return returnVal;
+    }
+
 
     private ExpNode myExp;
+    private int myLineNum;
+    private int myCharNum;
 }
 
 class BracketStmtNode extends StmtNode{
@@ -611,6 +1111,24 @@ class BracketStmtNode extends StmtNode{
         doIndent(p,indent);
         p.print("}");
     }
+    public void checkName(SymbolTable st){
+        //myVarDeclList.checkName(st,tp);
+        //myStmtList.checkName(st);
+        System.out.println("Wrong function");
+    }
+
+    public void checkName(SymbolTable st, TablePrinter tp){
+        SymbolTable newSt = new SymbolTable();
+        newSt.setMyParent(st);
+        tp.addToMap(newSt,2);
+        myVarDeclList.checkName(newSt,tp);
+        myStmtList.checkName(newSt,tp);
+    }
+
+    @Override
+    public int checkType(int expected) {
+        return myStmtList.checkType(expected);
+    }
 
     private VarDeclListNode myVarDeclList;
     private StmtListNode myStmtList;
@@ -621,16 +1139,76 @@ class BracketStmtNode extends StmtNode{
 // **********************************************************************
 
 abstract class ExpNode extends ASTnode {
+    public abstract void checkName(SymbolTable st);
+    public abstract int checkType(int expected);
+    public int returnStmtCheckType(int expected){
+        return checkType(expected);
+    }
+    public int callExpCheckType(int expected){
+        return checkType(expected);
+    }
 }
 
 class IntLitNode extends ExpNode {
     public IntLitNode(int lineNum, int colNum, int intVal) {
-        myLineNum = lineNum;
-        myColNum = colNum;
-        myIntVal = intVal;
+	myLineNum = lineNum;
+	myColNum = colNum;
+	myIntVal = intVal;
     }
 
     public void decompile(PrintWriter p, int indent) {p.print(myIntVal);
+    }
+
+    public void checkName(SymbolTable st)
+    {
+
+    }
+
+    @Override
+    public int checkType(int expected) {
+        if(expected != Types.ErrorType){
+            if(expected != Types.IntType) {
+                String expString = Types.ToString(expected);
+                if(expected == Types.MethodType)
+                {
+                    expString = "void";
+                }
+                Errors.fatal(myLineNum, myColNum, "Type mismatch--expected: " + expString + " provided: " + Types.ToString(Types.IntType));
+            }
+        }
+
+        return Types.IntType;
+    }
+    @Override
+    public int returnStmtCheckType(int expected){
+        if(expected != Types.ErrorType){
+            if(expected != Types.IntType) {
+                String expString = Types.ToString(expected);
+                if(expected == Types.MethodType)
+                {
+                    expString = "void";
+                }
+                //Errors.fatal(myLineNum, myColNum, "Returntype mismatch--expected: " + expString + " provided: " + Types.ToString(Types.IntType));
+            }
+        }
+
+        return Types.IntType;
+    }
+
+    @Override
+    public int callExpCheckType(int expected) {
+        if(expected != Types.ErrorType){
+            if(expected != Types.IntType) {
+                String expString = Types.ToString(expected);
+                if(expected == Types.MethodType)
+                {
+                    expString = "void";
+                }
+                Errors.fatal(myLineNum, myColNum, "Parameter type mismatch--expected: " + expString + " provided: " + Types.ToString(Types.IntType));
+            }
+        }
+
+        return Types.IntType;
     }
 
     private int myLineNum;
@@ -640,13 +1218,63 @@ class IntLitNode extends ExpNode {
 
 class StringLitNode extends ExpNode {
     public StringLitNode(int lineNum, int colNum, String strVal) {
-        myLineNum = lineNum;
-        myColNum = colNum;
-        myStrVal = strVal;
+	myLineNum = lineNum;
+	myColNum = colNum;
+	myStrVal = strVal;
     }
 
     public void decompile(PrintWriter p, int indent) {
         p.print("\"" + myStrVal + "\"");
+    }
+    public void checkName(SymbolTable st)
+    {
+
+    }
+
+    @Override
+    public int checkType(int expected) {
+        if(expected != Types.ErrorType){
+            if(expected != Types.StringType) {
+                String expString = Types.ToString(expected);
+                if(expected == Types.MethodType)
+                {
+                    expString = "void";
+                }
+                Errors.fatal(myLineNum, myColNum, "Type mismatch--expected: " + expString + " provided: " + Types.ToString(Types.StringType));
+            }
+        }
+        return Types.StringType;
+    }
+
+    @Override
+    public int returnStmtCheckType(int expected)
+    {
+        if(expected != Types.ErrorType){
+            if(expected != Types.StringType) {
+                String expString = Types.ToString(expected);
+                if(expected == Types.MethodType)
+                {
+                    expString = "void";
+                }
+                //Errors.fatal(myLineNum, myColNum, "Returntype mismatch--expected: " + expString + " provided: " + Types.ToString(Types.StringType));
+            }
+        }
+        return Types.StringType;
+    }
+
+    @Override
+    public int callExpCheckType(int expected) {
+        if(expected != Types.ErrorType){
+            if(expected != Types.StringType) {
+                String expString = Types.ToString(expected);
+                if(expected == Types.MethodType)
+                {
+                    expString = "void";
+                }
+                Errors.fatal(myLineNum, myColNum, "Parameter type mismatch--expected: " + expString + " provided: " + Types.ToString(Types.StringType));
+            }
+        }
+        return Types.StringType;
     }
 
     private int myLineNum;
@@ -656,11 +1284,58 @@ class StringLitNode extends ExpNode {
 
 class TrueNode extends ExpNode {
     public TrueNode(int lineNum, int colNum) {
-        myLineNum = lineNum;
-        myColNum = colNum;
+	myLineNum = lineNum;
+	myColNum = colNum;
     }
 
     public void decompile(PrintWriter p, int indent) {p.print("true");
+    }
+    public void checkName(SymbolTable st)
+    {
+
+    }
+
+    @Override
+    public int checkType(int expected) {
+
+        if(expected != Types.ErrorType) {
+            if (expected != Types.BoolType) {
+                String expString = Types.ToString(expected);
+                if (expected == Types.MethodType) {
+                    expString = "void";
+                }
+                Errors.fatal(myLineNum, myColNum, "Type mismatch--expected: " + expString + " provided: " + Types.ToString(Types.BoolType));
+            }
+        }
+        return Types.BoolType;
+    }
+    @Override
+    public int returnStmtCheckType(int expected)
+    {
+        if(expected != Types.ErrorType) {
+            if (expected != Types.BoolType) {
+                String expString = Types.ToString(expected);
+                if (expected == Types.MethodType) {
+                    expString = "void";
+                }
+                //Errors.fatal(myLineNum, myColNum, "Returntype mismatch--expected: " + expString + " provided: " + Types.ToString(Types.BoolType));
+            }
+        }
+        return Types.BoolType;
+    }
+
+    @Override
+    public int callExpCheckType(int expected) {
+        if(expected != Types.ErrorType) {
+            if (expected != Types.BoolType) {
+                String expString = Types.ToString(expected);
+                if (expected == Types.MethodType) {
+                    expString = "void";
+                }
+                Errors.fatal(myLineNum, myColNum, "Parameter type mismatch--expected: " + expString + " provided: " + Types.ToString(Types.BoolType));
+            }
+        }
+        return Types.BoolType;
     }
 
     private int myLineNum;
@@ -669,13 +1344,62 @@ class TrueNode extends ExpNode {
 
 class FalseNode extends ExpNode {
     public FalseNode(int lineNum, int colNum) {
-        myLineNum = lineNum;
-        myColNum = colNum;
+	myLineNum = lineNum;
+	myColNum = colNum;
     }
 
     public void decompile(PrintWriter p, int indent) {p.print("false");
     }
+    public void checkName(SymbolTable st)
+    {
 
+    }
+
+    @Override
+    public int checkType(int expected) {
+        if(expected != Types.ErrorType){
+            if(expected != Types.BoolType) {
+                String expString = Types.ToString(expected);
+                if(expected == Types.MethodType)
+                {
+                    expString = "void";
+                }
+                Errors.fatal(myLineNum, myColNum, "Type mismatch--expected: " + expString + " provided: " + Types.ToString(Types.BoolType));
+            }
+        }
+        return Types.BoolType;
+    }
+
+
+    @Override
+    public int returnStmtCheckType(int expected)
+    {
+        if(expected != Types.ErrorType){
+            if(expected != Types.BoolType) {
+                String expString = Types.ToString(expected);
+                if(expected == Types.MethodType)
+                {
+                    expString = "void";
+                }
+                //Errors.fatal(myLineNum, myColNum, "Returntype mismatch--expected: " + expString + " provided: " + Types.ToString(Types.BoolType));
+            }
+        }
+        return Types.BoolType;
+    }
+
+    @Override
+    public int callExpCheckType(int expected) {
+        if(expected != Types.ErrorType) {
+            if (expected != Types.BoolType) {
+                String expString = Types.ToString(expected);
+                if (expected == Types.MethodType) {
+                    expString = "void";
+                }
+                Errors.fatal(myLineNum, myColNum, "Parameter type mismatch--expected: " + expString + " provided: " + Types.ToString(Types.BoolType));
+            }
+        }
+        return Types.BoolType;
+    }
     private int myLineNum;
     private int myColNum;
 }
@@ -697,7 +1421,29 @@ class CallExpNode extends ExpNode {
         myExpList.decompile(p,indent);
         p.print(");");
     }
+    public void checkName(SymbolTable st)
+    {
+        myId.checkName(st);
+        myExpList.checkName(st);
+    }
 
+    @Override
+    public int checkType(int expected) {
+        if(expected != Types.ErrorType) {
+            myExpList.callExpCheckType(myId.getParams());
+        }
+        return myId.checkType(expected);
+    }
+
+    @Override
+    public int returnStmtCheckType(int expected) {
+        if(expected != Types.ErrorType) {
+            if (!myExpList.checkType(myId.getParams())) {
+                Errors.fatal(myId.getMyLineNum(), myId.getMyCharNum(), "Parameter type mismatch");
+            }
+        }
+        return myId.returnStmtCheckType(expected);
+    }
     // 2 kids
     private IdNode myId;
     private ExpListNode myExpList;
@@ -706,7 +1452,7 @@ class CallExpNode extends ExpNode {
 class BracketsNode extends ExpNode
 {
     public BracketsNode(ExpNode exp) {
-        myExp = exp;
+       myExp = exp;
     }
 
     public void decompile(PrintWriter p, int indent) {
@@ -714,30 +1460,142 @@ class BracketsNode extends ExpNode
         myExp.decompile(p,indent);
         p.print(")");
     }
+
+    public void checkName(SymbolTable st)
+    {
+        if(myExp!=null)
+        {
+            myExp.checkName(st);
+        }
+    }
+    @Override
+    public int checkType(int expected) {
+        return myExp.checkType(expected);
+    }
+
+    @Override
+    public int returnStmtCheckType(int expected){
+        return myExp.returnStmtCheckType(expected);
+    }
     private ExpNode myExp;
 }
 
 class IdNode extends ExpNode
 {
     public IdNode(int lineNum, int charNum, String strVal) {
-        myLineNum = lineNum;
-        myCharNum = charNum;
-        myStrVal = strVal;
+	myLineNum = lineNum;
+	myCharNum = charNum;
+	myStrVal = strVal;
     }
 
     public void decompile(PrintWriter p, int indent) {
-        p.print(myStrVal);
+	p.print(myStrVal);
+    }
+    public void checkInit(SymbolTable st,int type, int retType, ArrayList<Integer> params){
+        myRef=  st.insert(myStrVal,myLineNum,myCharNum);
+        if(myRef != null ){
+            myRef.setType(type);
+            myRef.setRetType(retType);
+            myRef.setParams(params);
+        }
+        myType = type;
+        myRetType = retType;
+        myParams = params;
+    }
+    public void checkName(SymbolTable st)
+    {
+        myRef= st.lookup(myStrVal,myLineNum,myCharNum);
+        if(myRef != null)
+        {
+            myType=myRef.getMyType();
+            myRetType=myRef.getMyReturnType();
+            myParams=myRef.getMyParams();
+        }
+    }
+
+    @Override
+    public int checkType(int expected) {
+        if(expected != Types.ErrorType) {
+            if (expected != myRetType) {
+                String expString = Types.ToString(expected);
+                Errors.fatal(myLineNum, myCharNum, "Type mismatch--expected: " + expString + " provided: " + Types.ToString(myRetType));
+                return Types.ErrorType;
+            }
+        }
+        return myRetType;
+    }
+
+    @Override
+    public int returnStmtCheckType(int expected){
+        if(expected != Types.ErrorType) {
+            if (expected != myRetType) {
+                String expString = Types.ToString(expected);
+                //Errors.fatal(myLineNum, myCharNum, "Returntype mismatch--expected: " + expString + " provided: " + Types.ToString(myRetType));
+                return Types.ErrorType;
+            }
+        }
+        return myRetType;
+    }
+
+
+    @Override
+    public int callExpCheckType(int expected) {
+        if(expected != Types.ErrorType) {
+            if (expected != myRetType) {
+                String expString = Types.ToString(expected);
+                Errors.fatal(myLineNum, myCharNum, "Parameter type mismatch--expected: " + expString + " provided: " + Types.ToString(myRetType));
+                return Types.ErrorType;
+            }
+        }
+        return myRetType;
+    }
+
+    public int getMyRetTyp(){
+        return myRetType;
+    }
+    public ArrayList<Integer> getParams()
+    {
+        return myParams;
+    }
+
+
+    public int getMyLineNum(){
+        return myLineNum;
+    }
+
+    public int getMyCharNum(){
+        return myCharNum;
+    }
+
+    public int checkReturn(int expected)
+    {
+        if(expected == myRetType)
+        {
+            return myRetType;
+        }
+        return Types.ErrorType;
     }
 
     private int myLineNum;
     private int myCharNum;
     private String myStrVal;
+    private int myType = Types.ErrorType;
+    private int myRetType = Types.ErrorType;
+    private SymbolTable.Sym myRef;
+    private ArrayList<Integer> myParams = new ArrayList<>();
+
 }
 
 abstract class UnaryExpNode extends ExpNode {
     public UnaryExpNode(ExpNode exp) {
-        myExp = exp;
+	myExp = exp;
     }
+    public void checkName(SymbolTable st)
+    {
+
+    }
+
+
 
     // one child
     protected ExpNode myExp;
@@ -746,8 +1604,13 @@ abstract class UnaryExpNode extends ExpNode {
 abstract class BinaryExpNode extends ExpNode
 {
     public BinaryExpNode(ExpNode exp1, ExpNode exp2) {
-        myExp1 = exp1;
-        myExp2 = exp2;
+	myExp1 = exp1;
+	myExp2 = exp2;
+    }
+    public void checkName(SymbolTable st)
+    {
+        myExp1.checkName(st);
+        myExp2.checkName(st);
     }
 
     // two kids
@@ -762,7 +1625,7 @@ abstract class BinaryExpNode extends ExpNode
 class UnaryMinusNode extends UnaryExpNode
 {
     public UnaryMinusNode(ExpNode exp) {
-        super(exp);
+	super(exp);
     }
 
     public void decompile(PrintWriter p, int indent) {
@@ -771,12 +1634,25 @@ class UnaryMinusNode extends UnaryExpNode
         myExp.decompile(p,indent);
         p.print(")");
     }
+    public void checkName(SymbolTable st)
+    {
+        myExp.checkName(st);
+    }
+    @Override
+    public int checkType(int expected) {
+        myExp.checkType(Types.IntType);
+        return Types.IntType;
+    }
+    @Override
+    public int returnStmtCheckType(int expected) {
+        return checkType(expected);
+    }
 }
 
 class NotNode extends UnaryExpNode
 {
     public NotNode(ExpNode exp) {
-        super(exp);
+	super(exp);
     }
 
     public void decompile(PrintWriter p, int indent) {
@@ -785,6 +1661,21 @@ class NotNode extends UnaryExpNode
         myExp.decompile(p,indent);
         p.print(")");
     }
+    public void checkName(SymbolTable st)
+    {
+        myExp.checkName(st);
+    }
+    @Override
+    public int checkType(int expected) {
+        myExp.checkType(Types.BoolType);
+        return Types.BoolType;
+    }
+    @Override
+    public int returnStmtCheckType(int expected) {
+        checkType(Types.BoolType);
+        return Types.BoolType;
+    }
+
 }
 
 // **********************************************************************
@@ -794,7 +1685,7 @@ class NotNode extends UnaryExpNode
 class PlusNode extends BinaryExpNode
 {
     public PlusNode(ExpNode exp1, ExpNode exp2) {
-        super(exp1, exp2);
+	super(exp1, exp2);
     }
 
     public void decompile(PrintWriter p, int indent) {
@@ -804,12 +1695,29 @@ class PlusNode extends BinaryExpNode
         myExp2.decompile(p,indent);
         p.print(")");
     }
+    public void checkName(SymbolTable st)
+    {
+        myExp1.checkName(st);
+        myExp2.checkName(st);
+    }
+
+    @Override
+    public int checkType(int expected) {
+        myExp1.checkType(Types.IntType);
+        myExp2.checkType(Types.IntType);
+        return Types.IntType;
+    }
+    @Override
+    public int returnStmtCheckType(int expected) {
+        checkType(Types.IntType);
+        return Types.IntType;
+    }
 }
 
 class MinusNode extends BinaryExpNode
 {
     public MinusNode(ExpNode exp1, ExpNode exp2) {
-        super(exp1, exp2);
+	super(exp1, exp2);
     }
 
     public void decompile(PrintWriter p, int indent) {
@@ -819,12 +1727,29 @@ class MinusNode extends BinaryExpNode
         myExp2.decompile(p,indent);
         p.print(")");
     }
+    public void checkName(SymbolTable st)
+    {
+        myExp1.checkName(st);
+        myExp2.checkName(st);
+    }
+    @Override
+    public int checkType(int expected) {
+        myExp1.checkType(Types.IntType);
+        myExp2.checkType(Types.IntType);
+        return Types.IntType;
+    }
+    @Override
+    public int returnStmtCheckType(int expected) {
+        checkType(Types.IntType);
+        return Types.IntType;
+    }
+
 }
 
 class TimesNode extends BinaryExpNode
 {
     public TimesNode(ExpNode exp1, ExpNode exp2) {
-        super(exp1, exp2);
+	super(exp1, exp2);
     }
 
     public void decompile(PrintWriter p, int indent) {
@@ -833,6 +1758,23 @@ class TimesNode extends BinaryExpNode
         p.print("*");
         myExp2.decompile(p,indent);
         p.print(")");
+    }
+    public void checkName(SymbolTable st)
+    {
+        myExp1.checkName(st);
+        myExp2.checkName(st);
+    }
+
+    @Override
+    public int checkType(int expected) {
+        myExp1.checkType(Types.IntType);
+        myExp2.checkType(Types.IntType);
+        return Types.IntType;
+    }
+    @Override
+    public int returnStmtCheckType(int expected) {
+        checkType(Types.IntType);
+        return Types.IntType;
     }
 }
 
@@ -849,12 +1791,29 @@ class PowerNode extends BinaryExpNode
         myExp2.decompile(p,indent);
         p.print(")");
     }
+    public void checkName(SymbolTable st)
+    {
+        myExp1.checkName(st);
+        myExp2.checkName(st);
+    }
+
+    @Override
+    public int checkType(int expected) {
+        myExp1.checkType(Types.IntType);
+        myExp2.checkType(Types.IntType);
+        return Types.IntType;
+    }
+    @Override
+    public int returnStmtCheckType(int expected) {
+        checkType(Types.IntType);
+        return Types.IntType;
+    }
 }
 
 class DivideNode extends BinaryExpNode
 {
     public DivideNode(ExpNode exp1, ExpNode exp2) {
-        super(exp1, exp2);
+	super(exp1, exp2);
     }
 
     public void decompile(PrintWriter p, int indent) {
@@ -864,12 +1823,29 @@ class DivideNode extends BinaryExpNode
         myExp2.decompile(p,indent);
         p.print(")");
     }
+    public void checkName(SymbolTable st)
+    {
+        myExp1.checkName(st);
+        myExp2.checkName(st);
+    }
+
+    @Override
+    public int checkType(int expected) {
+        myExp1.checkType(Types.IntType);
+        myExp2.checkType(Types.IntType);
+        return Types.IntType;
+    }
+    @Override
+    public int returnStmtCheckType(int expected) {
+        checkType(Types.IntType);
+        return Types.IntType;
+    }
 }
 
 class AndNode extends BinaryExpNode
 {
     public AndNode(ExpNode exp1, ExpNode exp2) {
-        super(exp1, exp2);
+	super(exp1, exp2);
     }
 
     public void decompile(PrintWriter p, int indent) {
@@ -879,12 +1855,29 @@ class AndNode extends BinaryExpNode
         myExp2.decompile(p,indent);
         p.print(")");
     }
+    public void checkName(SymbolTable st)
+    {
+        myExp1.checkName(st);
+        myExp2.checkName(st);
+    }
+
+    @Override
+    public int checkType(int expected) {
+        myExp1.checkType(Types.BoolType);
+        myExp2.checkType(Types.BoolType);
+        return Types.BoolType;
+    }
+    @Override
+    public int returnStmtCheckType(int expected) {
+        checkType(Types.BoolType);
+        return Types.BoolType;
+    }
 }
 
 class OrNode extends BinaryExpNode
 {
     public OrNode(ExpNode exp1, ExpNode exp2) {
-        super(exp1, exp2);
+	super(exp1, exp2);
     }
 
     public void decompile(PrintWriter p, int indent) {
@@ -894,12 +1887,30 @@ class OrNode extends BinaryExpNode
         myExp2.decompile(p,indent);
         p.print(")");
     }
+    public void checkName(SymbolTable st)
+    {
+        myExp1.checkName(st);
+        myExp2.checkName(st);
+    }
+
+    @Override
+    public int checkType(int expected) {
+            myExp1.checkType(Types.BoolType);
+            myExp2.checkType(Types.BoolType);
+
+        return Types.BoolType;
+    }
+    @Override
+    public int returnStmtCheckType(int expected) {
+        checkType(Types.BoolType);
+        return Types.BoolType;
+    }
 }
 
 class EqualsNode extends BinaryExpNode
 {
     public EqualsNode(ExpNode exp1, ExpNode exp2) {
-        super(exp1, exp2);
+	super(exp1, exp2);
     }
 
     public void decompile(PrintWriter p, int indent) {
@@ -909,12 +1920,29 @@ class EqualsNode extends BinaryExpNode
         myExp2.decompile(p,indent);
         p.print(")");
     }
+    public void checkName(SymbolTable st)
+    {
+        myExp1.checkName(st);
+        myExp2.checkName(st);
+    }
+
+    @Override
+    public int checkType(int expected) {
+       myExp1.checkType(Types.IntType);
+       myExp2.checkType(Types.IntType);
+       return Types.BoolType;
+    }
+    @Override
+    public int returnStmtCheckType(int expected) {
+        checkType(Types.BoolType);
+        return Types.BoolType;
+    }
 }
 
 class NotEqualsNode extends BinaryExpNode
 {
     public NotEqualsNode(ExpNode exp1, ExpNode exp2) {
-        super(exp1, exp2);
+	super(exp1, exp2);
     }
 
     public void decompile(PrintWriter p, int indent) {
@@ -924,12 +1952,29 @@ class NotEqualsNode extends BinaryExpNode
         myExp2.decompile(p,indent);
         p.print(")");
     }
+    public void checkName(SymbolTable st)
+    {
+        myExp1.checkName(st);
+        myExp2.checkName(st);
+    }
+
+    @Override
+    public int checkType(int expected) {
+        myExp1.checkType(Types.IntType);
+        myExp2.checkType(Types.IntType);
+        return Types.BoolType;
+    }
+    @Override
+    public int returnStmtCheckType(int expected) {
+        checkType(Types.BoolType);
+        return Types.BoolType;
+    }
 }
 
 class LessNode extends BinaryExpNode
 {
     public LessNode(ExpNode exp1, ExpNode exp2) {
-        super(exp1, exp2);
+	super(exp1, exp2);
     }
 
     public void decompile(PrintWriter p, int indent) {
@@ -939,12 +1984,29 @@ class LessNode extends BinaryExpNode
         myExp2.decompile(p,indent);
         p.print(")");
     }
+    public void checkName(SymbolTable st)
+    {
+        myExp1.checkName(st);
+        myExp2.checkName(st);
+    }
+
+    @Override
+    public int checkType(int expected) {
+        myExp1.checkType(Types.IntType);
+        myExp2.checkType(Types.IntType);
+        return Types.BoolType;
+    }
+    @Override
+    public int returnStmtCheckType(int expected) {
+        checkType(Types.BoolType);
+        return Types.BoolType;
+    }
 }
 
 class GreaterNode extends BinaryExpNode
 {
     public GreaterNode(ExpNode exp1, ExpNode exp2) {
-        super(exp1, exp2);
+	super(exp1, exp2);
     }
 
     public void decompile(PrintWriter p, int indent) {
@@ -954,12 +2016,28 @@ class GreaterNode extends BinaryExpNode
         myExp2.decompile(p,indent);
         p.print(")");
     }
+    public void checkName(SymbolTable st)
+    {
+        myExp1.checkName(st);
+        myExp2.checkName(st);
+    }
+    @Override
+    public int checkType(int expected) {
+        myExp1.checkType(Types.IntType);
+        myExp2.checkType(Types.IntType);
+        return Types.BoolType;
+    }
+    @Override
+    public int returnStmtCheckType(int expected) {
+        checkType(Types.BoolType);
+        return Types.BoolType;
+    }
 }
 
 class LessEqNode extends BinaryExpNode
 {
     public LessEqNode(ExpNode exp1, ExpNode exp2) {
-        super(exp1, exp2);
+	super(exp1, exp2);
     }
 
     public void decompile(PrintWriter p, int indent) {
@@ -969,12 +2047,28 @@ class LessEqNode extends BinaryExpNode
         myExp2.decompile(p,indent);
         p.print(")");
     }
+    public void checkName(SymbolTable st)
+    {
+        myExp1.checkName(st);
+        myExp2.checkName(st);
+    }
+    @Override
+    public int checkType(int expected) {
+        myExp1.checkType(Types.IntType);
+        myExp2.checkType(Types.IntType);
+        return Types.BoolType;
+    }
+    @Override
+    public int returnStmtCheckType(int expected) {
+        checkType(Types.BoolType);
+        return Types.BoolType;
+    }
 }
 
 class GreaterEqNode extends BinaryExpNode
 {
     public GreaterEqNode(ExpNode exp1, ExpNode exp2) {
-        super(exp1, exp2);
+	super(exp1, exp2);
     }
 
     public void decompile(PrintWriter p, int indent) {
@@ -983,5 +2077,21 @@ class GreaterEqNode extends BinaryExpNode
         p.print(">=");
         myExp2.decompile(p,indent);
         p.print(")");
+    }
+    public void checkName(SymbolTable st)
+    {
+        myExp1.checkName(st);
+        myExp2.checkName(st);
+    }
+    @Override
+    public int checkType(int expected) {
+        myExp1.checkType(Types.IntType);
+        myExp2.checkType(Types.IntType);
+        return Types.BoolType;
+    }
+    @Override
+    public int returnStmtCheckType(int expected) {
+        checkType(Types.BoolType);
+        return Types.BoolType;
     }
 }

@@ -2,6 +2,10 @@
 // excercise all grammatical concepts defined in simple.grammar
 // Testing classbody
 public class Person { static String name; static int alter; static boolean isFriendly;
+    static int x;
+    static int y;
+    static int z;
+
     public static void printShit() { System.out.println("Test");}
 
     public static int makeSum(int a, int b) { return a + b; }
@@ -19,6 +23,8 @@ public class Person { static String name; static int alter; static boolean isFri
         c = x || y;
         c = x && y;
         c = x != y;
+
+
 
 
        //Testing STMT
@@ -41,6 +47,153 @@ public class Person { static String name; static int alter; static boolean isFri
     public static void callSome() {
         testingOperators();
         makeSum(2, 4);
+    }
+
+
+      public static void variableTests(){
+                    boolean testbool;
+                    x = 7;
+                    y = "Baum";
+                    testbool = true;
+                    z = 7; //Error
+                    y = 7;
+                    {
+                        String x;
+                        x = "Baum";
+                        y = x;
+                    }
+
+                    return;
+                }
+
+
+        //void method tests
+        public static void voidTest_NullReturn(){
+                    return;
+                }
+        public static void voidTest_NoReturn(){
+                }
+        public static void voidTest_ifReturn(){
+                    if(false)
+                    {
+                        return;
+                    }
+                }
+        public static void voidTest_IntReturn(){     //Throws Error
+                    return 7;       //Error correct
+                }
+
+        //int method tests
+        public static int intTest_returnVariable(){
+                    int x;
+                    x =7;
+                    return x;
+                }
+        public static int intTest_returnVoid(){     //Throws Error
+                    return;
+                }
+        public static int intTest_MissingReturn(){     //Throws Error
+
+                }
+
+        public static int intTest_returnIf_NoReturn(){     //Throws Error
+                    if(false)
+                    {
+                    }
+                }
+        public static int intTest_returnIf_ReturnInIf(){     //Throws Error
+                    if(false)
+                    {
+                        return 8;
+                    }
+                }
+
+        public static int intTest_returnIf_ReturnInIfAndMethodBod(){
+                    if(false)
+                    {
+                        return 7;
+                    }
+                    return 7;
+                }
+        public static int intTest_returnIf_ReturnNotInIfAndMethodBod(){
+                    if(false)
+                    {
+
+                    }
+                    return 7;
+                }
+
+        public static int intTest_returnIfElse_01(){
+                    if(false)
+                    {
+
+                    }
+                    else
+                    {
+
+                    }
+                    return 7;
+                }
+
+        public static int intTest_returnIfElse_02(){  //NO RETURN ERROR!
+                    if(false)
+                    {
+                        return "Baum";  //Error
+                    }
+                    else
+                    {
+                        return 7;
+                    }
+                }
+        public static int intTest_returnIfElse_03(){     //Throws Error
+                    if(false)
+                    {
+                        return 7;
+                    }
+                    else
+                    {
+
+                    }
+                }
+        public static int intTest_returnIfElse_04(){     //Throws Error
+                    if(false)
+                    {
+
+                    }
+                    else
+                    {
+                        return 7;
+                    }
+                }
+
+              /*
+              Parameter anzahl
+              Parameter nutzung
+              methoden aufruf mit Parametern
+              Methoden Aufruf mit gleichenamigen paras
+                */
+    public static int paramTest_2_IntString(int zahl, String Wort){
+                    return 7;
+                }
+    public static int paramTest_2_IntString_Nutzung(int zahl, String Wort){
+                    String y;
+                    y = Wort;
+                    return ; //Error
+       }
+
+
+
+    public static int paramTest_3(String testWort, int testVal,boolean boolTest){
+                    testWort = 7; //Error
+                    testWort = "Baum";
+                    if(boolTest)
+                    {}
+                    return 7;
+                }
+
+    public static void main() {
+        paramTest_3();
+
     }
 
 }

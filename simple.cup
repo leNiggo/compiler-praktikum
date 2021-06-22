@@ -215,9 +215,9 @@ stmtList    ::= stmtList:stml stmt:stm
             {: RESULT = new Sequence();
             :};
 
-stmt        ::= RETURN SEMICOLON
+stmt        ::= RETURN:r1 SEMICOLON
             {:
-            RESULT = new ReturnStmtNode();
+            RESULT = new ReturnStmtNode(r1.linenum, r1.charnum);
             :}
             | PRINT LPAREN exp:e1 RPAREN SEMICOLON
             {:
@@ -247,8 +247,8 @@ stmt        ::= RETURN SEMICOLON
             {:
               RESULT = new CallStmtNode(i);
             :}
-            | RETURN exp:e1 SEMICOLON {:
-              RESULT = new ReturnStmtNode(e1);
+            | RETURN:r1 exp:e1 SEMICOLON {:
+              RESULT = new ReturnStmtNode(e1, r1.linenum, r1.charnum);
             :}
             | LCURLY varDeclList:vdl stmtList:sml RCURLY
             {:
