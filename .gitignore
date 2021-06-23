@@ -7,4 +7,6 @@
 out
 parser.java
 Yylex.java
-java-cup-11b-runtime.jar
+sym.java
+submit.zip
+output-semantic.txt
