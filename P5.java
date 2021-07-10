@@ -61,10 +61,18 @@ public class P5 {
 
 
 	// only contine if there have been no errors so far
-	if (!Errors.wereErrors()) {
-	    ((ProgramNode)root.value).checkType();
-	}
+		if (Errors.getErrors() == 0) {
+			((ProgramNode)root.value).checkType();
+			System.out.println("Type check complete, errors found: " + Errors.getErrors() + ", warnings found: " + Errors.getWarnings());
 
-	return;
-    }
+		}
+		if(Errors.getErrors() == 0){
+			((ProgramNode)root.value).codeGen();
+			System.out.println("Code generation complete");
+		}
+		Codegen.closePrinter();
+		//((ASTnode)root.value).decompile(outFile, 0);
+		outFile.close();
+		return;
+	}
 }

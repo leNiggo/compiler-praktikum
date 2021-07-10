@@ -1,8 +1,19 @@
 import java.io.*;
 
-public class Codegen {
+public class Codegen{
     // file into which generated code is written
-    public static PrintWriter p = null;
+    // public static PrintWriter p = null;
+    public static PrintWriter p;
+    static int counter = 0;
+    static int compareCounter = 0;
+
+    static {
+        try {
+            p = IO.openOutputFile("Assembler.a");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 
     // values of true and false
     public static final String TRUE = "-1";
@@ -21,7 +32,7 @@ public class Codegen {
     private static int currLabel = 0;
 
 
-    // ********************************************************************** 
+    // **********************************************************************
     // **********************************************************************
     // GENERATE OPERATIONS
     // **********************************************************************
@@ -36,7 +47,6 @@ public class Codegen {
                                            String arg1, String arg2,
                                            String arg3) {
         int space = MAXLEN - opcode.length() + 2;
-
         p.print("\t" + opcode);
         if (arg1 != "") {
             for (int k = 1; k <= space; k++) p.print(" ");
@@ -45,7 +55,7 @@ public class Codegen {
                 p.print(", " + arg2);
                 if (arg3 != "") p.print(", " + arg3);
             }
-        }           
+        }
         if (comment != "") p.print("\t\t#" + comment);
         p.println();
 
@@ -53,22 +63,41 @@ public class Codegen {
 
     public static void generateWithComment(String opcode, String comment,
                                            String arg1, String arg2) {
-
+        int space = MAXLEN - opcode.length() + 2;
+        p.print("\t" + opcode);
+        if (arg1 != "") {
+            for (int k = 1; k <= space; k++) p.print(" ");
+            p.print(arg1);
+            if (arg2 != "") {
+                p.print(", " + arg2);
+            }
+        }
+        if (comment != "") p.print("\t\t#" + comment);
+        p.println();
     }
 
     public static void generateWithComment(String opcode, String comment,
                                            String arg1) {
-
+        int space = MAXLEN - opcode.length() + 2;
+        p.print("\t" + opcode);
+        if (arg1 != "") {
+            for (int k = 1; k <= space; k++) p.print(" ");
+            p.print(arg1);
+        }
+        if (comment != "") p.print("\t\t#" + comment);
+        p.println();
     }
 
     public static void generateWithComment(String opcode, String comment) {
-
+        p.print("\t" + opcode);
+        if (comment != "") p.print("\t\t#" + comment);
+        p.println();
     }
 
     // **********************************************************************
     // generate (string args -- perhaps empty)
     //    given:  op code, and args
-    //    do:     write nicely formatted code (ending with new line) 
+    //    do:     write nicely formatted code (ending with new line)
     // **********************************************************************
     public static void generate(String opcode, String arg1, String arg2,
                                 String arg3) {
@@ -87,15 +116,33 @@ public class Codegen {
     }
 
     public static void generate(String opcode, String arg1, String arg2) {
+        int space = MAXLEN - opcode.length() + 2;
 
+        p.print("\t" + opcode);
+        if (arg1 != "") {
+            for (int k = 1; k <= space; k++) p.print(" ");
+            p.print(arg1);
+            if (arg2 != "") {
+                p.print(", " + arg2);
+            }
+        }
+        p.println();
     }
 
     public static void generate(String opcode, String arg1) {
+        int space = MAXLEN - opcode.length() + 2;
 
+        p.print("\t" + opcode);
+        if (arg1 != "") {
+            for (int k = 1; k <= space; k++) p.print(" ");
+            p.print(arg1);
+        }
+        p.println();
     }
 
     public static void generate(String opcode) {
-
+        p.print("\t" + opcode);
+        p.println();
     }
 
     // **********************************************************************
@@ -105,7 +152,18 @@ public class Codegen {
     // **********************************************************************
     public static void generate(String opcode, String arg1, String arg2,
                                 int arg3) {
+        int space = MAXLEN - opcode.length() + 2;
 
+        p.print("\t" + opcode);
+        if (arg1 != "") {
+            for (int k = 1; k <= space; k++) p.print(" ");
+            p.print(arg1);
+            if (arg2 != "") {
+                p.print(", " + arg2);
+                p.print(", " + arg3);
+            }
+        }
+        p.println();
     }
 
 
@@ -113,9 +171,17 @@ public class Codegen {
     // generate (one string arg, one int)
     //    given:  op code and args
     //    do:     write nicely formatted code (ending with new line)
-    // **********************************************************************  
+    // **********************************************************************
     public static void generate(String opcode, String arg1, int arg2) {
+        int space = MAXLEN - opcode.length() + 2;
 
+        p.print("\t" + opcode);
+        if (arg1 != "") {
+            for (int k = 1; k <= space; k++) p.print(" ");
+            p.print(arg1);
+            p.print(", " + arg2);
+        }
+        p.println();
     }
 
 
@@ -127,15 +193,29 @@ public class Codegen {
     //                 op T1, xx(T2) #comment
     // **********************************************************************
     public static void generateIndexed(String opcode, String arg1,
-                                      String arg2, int arg3, String comment)
+                                       String arg2, int arg3, String comment)
     {
+        int space = MAXLEN - opcode.length() + 2;
+        p.print("\t" + opcode);
+        for (int k = 1; k <= space; k++) p.print(" ");
+        p.print(arg1);
+        p.print(", " + arg3);
+        p.print("(" + arg2 + ")");
 
+        if (comment != "") p.print("\t\t#" + comment);
+        p.println();
     }
 
     public static void generateIndexed(String opcode, String arg1,
                                        String arg2, int arg3) {
+        int space = MAXLEN - opcode.length() + 2;
+        p.print("\t" + opcode);
+        for (int k = 1; k <= space; k++) p.print(" ");
+        p.print(arg1);
+        p.print(", " + arg3);
+        p.println("(" + arg2 + ")");
 
-    }                   
+    }
 
     // **********************************************************************
     // generateLabeled (string args -- perhaps empty)
@@ -144,12 +224,25 @@ public class Codegen {
     // **********************************************************************
     public static void generateLabeled(String label, String opcode,
                                        String comment, String arg1) {
+        int space = MAXLEN - opcode.length() + 2;
+        if(label != "") p.print(label + ":");
+        p.print("\t" + opcode);
+        for (int k = 1; k <= space; k++) p.print(" ");
+        if (arg1 != "") p.print(arg1);
 
+        if (comment != "") p.print("\t\t#" + comment);
+        p.println();
     }
 
     public static void generateLabeled(String label, String opcode,
                                        String comment) {
+        int space = MAXLEN - opcode.length() + 2;
+        if(label != "") p.print(label + ":");
+        p.print("\t" + opcode);
+        for (int k = 1; k <= space; k++) p.print(" ");
 
+        if (comment != "") p.print("\t\t#" + comment);
+        p.println();
     }
 
     // **********************************************************************
@@ -158,8 +251,7 @@ public class Codegen {
     // **********************************************************************
     public static void genPush(String s) {
         generateIndexed("sw", s, SP, 0, "PUSH");
-        generate("subu", SP, SP, 4);                       
-
+        generate("subu", SP, SP, 4);
     }
 
     // **********************************************************************
@@ -167,6 +259,8 @@ public class Codegen {
     //    generate code to pop into the given register
     // **********************************************************************
     public static void genPop(String s) {
+        generate("addu", SP, SP, 4);
+        generateIndexed("lw", s, SP, 0, "POP");
 
     }
 
@@ -179,9 +273,23 @@ public class Codegen {
     //       4. goto falselab
     //       5. truelab: push true
     //       6. falselab:
-    public static void genCompare(String op) {
+    public static void genCompare(String op){
+        p.print(op + " ");
+        p.print("$t0, $t1, ");
+        p.print("_truelab"+ compareCounter);
+        p.println();
+        generate("li", "$t0", 0);
+        genPush("$t0");
+        p.print("j " + "_falseLab" + compareCounter);
+        p.println();
+        genLabel("_truelab" + compareCounter);
+        generate("li", "$t0", -1);
+        genPush("$t0");
+        p.println();
+        genLabel("_falseLab" + compareCounter);
+        compareCounter++;
 
-    }                    
+    }
 
     // **********************************************************************
     // genLabel
@@ -189,11 +297,15 @@ public class Codegen {
     //   generate: L:    # comment
     // **********************************************************************
     public static void genLabel(String label, String comment) {
+        p.print(label + ":");
 
+        if (comment != "") p.print("\t\t#" + comment);
+        p.println();
     }
 
     public static void genLabel(String label) {
-
+        p.print(label + ":");
+        p.println();
     }
 
     // **********************************************************************
@@ -201,6 +313,28 @@ public class Codegen {
     //        ._L0 ._L1 ._L2, etc.
     // **********************************************************************
     public static String nextLabel() {
-        return "NO";
-    }                               
+        String nextLabel = "_L" + counter;
+        counter ++;
+        return nextLabel;
+    }
+
+    public static void dataSegment(){
+        p.print(".data");
+        p.println();
+    }
+
+    public static void textSegment(){
+        p.print(".text");
+        p.println();
+    }
+
+    public static PrintWriter getOutput()
+    {
+        return p;
+    }
+
+    public static void closePrinter()
+    {
+        p.close();
+    }
 }
